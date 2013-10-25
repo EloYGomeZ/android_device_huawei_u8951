@@ -85,7 +85,6 @@ PRODUCT_COPY_FILES += \
     device/huawei/u8951/ramdisk/init.huawei.usb.rc:root/init.huawei.usb.rc \
     device/huawei/u8951/ramdisk/fstab.huawei:root/fstab.huawei \
     device/huawei/u8951/ramdisk/ueventd.huawei.rc:root/ueventd.huawei.rc \
-    device/huawei/u8951/ramdisk/init.qcom.ril.path.sh:root/init.qcom.ril.path.sh \
     device/huawei/u8951/ramdisk/wifi/ar6000.ko:root/wifi/ar6000.ko \
     device/huawei/u8951/ramdisk/wifi/cfg80211.ko:root/wifi/cfg80211.ko
 	
