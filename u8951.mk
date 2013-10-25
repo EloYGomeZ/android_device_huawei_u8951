@@ -28,8 +28,6 @@ $(call inherit-product, device/common/gps/gps_eu_supl.mk)
 
 $(call inherit-product, vendor/huawei/u8951/u8951-vendor.mk)
 
-FRAMEWORKS_BASE_SUBDIRS += ../../$(LOCAL_PATH)/ril/
-
 DEVICE_PACKAGE_OVERLAYS += device/huawei/u8951/overlay
 
 PRODUCT_AAPT_CONFIG := normal hdpi
@@ -37,10 +35,9 @@ PRODUCT_AAPT_PREF_CONFIG := hdpi
 
 # Video
 PRODUCT_PACKAGES += \
+    libstagefrighthw \
     libmm-omxcore \
-    libOmxCore \
-    libstagefrighthw 
-
+    libOmxCore
 
 # Graphics
 PRODUCT_PACKAGES += \
@@ -57,6 +54,10 @@ PRODUCT_PACKAGES += \
     audio_policy.u8951 \
     audio.usb.default \
     libaudioutils
+	
+# Bluetooth
+PRODUCT_PACKAGES += \
+    btmac
 
 # GPS
 PRODUCT_PACKAGES += \
@@ -69,6 +70,7 @@ PRODUCT_PACKAGES += \
 
 # Live Wallpapers
 PRODUCT_PACKAGES += \
+    LiveWallpapers \
     LiveWallpapersPicker \
     librs_jni	
 	
@@ -85,7 +87,7 @@ PRODUCT_COPY_FILES += \
     device/huawei/u8951/ramdisk/init.huawei.usb.rc:root/init.huawei.usb.rc \
     device/huawei/u8951/ramdisk/fstab.huawei:root/fstab.huawei \
     device/huawei/u8951/ramdisk/ueventd.huawei.rc:root/ueventd.huawei.rc \
-    device/huawei/u8951/ramdisk/init.qcom.ril.path.sh:root/init.qcom.ril.path.sh \
+    device/huawei/u8951/ramdisk/tp/1191601.img:root/tp/1191601.img \
     device/huawei/u8951/ramdisk/wifi/ar6000.ko:root/wifi/ar6000.ko \
     device/huawei/u8951/ramdisk/wifi/cfg80211.ko:root/wifi/cfg80211.ko
 	
@@ -102,24 +104,22 @@ PRODUCT_COPY_FILES += \
 
 # Install the features available on this device.
 PRODUCT_COPY_FILES += \
-    frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
     frameworks/native/data/etc/android.hardware.bluetooth.xml:system/etc/permissions/android.hardware.bluetooth.xml \
-    frameworks/native/data/etc/android.hardware.camera.front.xml:system/etc/permissions/android.hardware.camera.front.xml \
+    frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
     frameworks/native/data/etc/android.hardware.camera.flash-autofocus.xml:system/etc/permissions/android.hardware.camera.flash-autofocus.xml \
+    frameworks/native/data/etc/android.hardware.camera.front.xml:system/etc/permissions/android.hardware.camera.front.xml \
     frameworks/native/data/etc/android.hardware.location.gps.xml:system/etc/permissions/android.hardware.location.gps.xml \
     frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
-    frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
     frameworks/native/data/etc/android.hardware.sensor.proximity.xml:system/etc/permissions/android.hardware.sensor.proximity.xml \
+    frameworks/native/data/etc/android.hardware.sensor.light.xml:system/etc/permissions/android.hardware.sensor.light.xml \
+    frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
     frameworks/native/data/etc/android.hardware.touchscreen.multitouch.jazzhand.xml:system/etc/permissions/android.hardware.touchscreen.multitouch.jazzhand.xml \
     frameworks/native/data/etc/android.hardware.usb.accessory.xml:system/etc/permissions/android.hardware.usb.accessory.xml \
     frameworks/native/data/etc/android.hardware.wifi.xml:system/etc/permissions/android.hardware.wifi.xml \
-    frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
-    packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:system/etc/permissions/android.software.live_wallpaper.xml
+    frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
+    packages/wallpapers/LivePicker/android.software.live_wallpaper.xml:/system/etc/permissions/android.software.live_wallpaper.xml
 
-# Bluetooth
-PRODUCT_COPY_FILES += \
-    system/bluetooth/data/main.le.conf:system/etc/bluetooth/main.conf
-
+	
 PRODUCT_TAGS += dalvik.gc.type-precise
 
 $(call inherit-product, build/target/product/full.mk)

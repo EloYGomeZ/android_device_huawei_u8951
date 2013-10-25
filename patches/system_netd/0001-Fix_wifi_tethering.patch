@@ -1,108 +1,94 @@
-From 63466ce8f5a67a0f4819c9aeab425e02cd8f4b24 Mon Sep 17 00:00:00 2001
+From d8eb8f52e9fef312c33c298926590cb5b26986ab Mon Sep 17 00:00:00 2001
 From: Kra1o5 <kra1o5x@gmail.com>
-Date: Thu, 26 Sep 2013 01:41:58 +0200
+Date: Sun, 29 Sep 2013 18:09:04 +0200
 Subject: [PATCH] Fix_wifi_tethering
 
 ---
- Android.mk              |   8 +-
- DnsProxyListener.cpp    |   7 +-
- DnsProxyListener.h      |   3 -
- SoftapControllerATH.cpp | 874 ++++++++++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 886 insertions(+), 6 deletions(-)
+ Android.mk              |   8 +
+ CommandListener.cpp     |   9 +
+ SoftapController.h      |   8 +
+ SoftapControllerATH.cpp | 880 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 905 insertions(+)
  create mode 100644 SoftapControllerATH.cpp
 
 diff --git a/Android.mk b/Android.mk
-index 95939df..78d2647 100644
+index 84443d9..3ca70a6 100644
 --- a/Android.mk
 +++ b/Android.mk
-@@ -40,7 +40,12 @@ LOCAL_CFLAGS := -Werror=format
+@@ -39,11 +39,19 @@ LOCAL_CFLAGS := -Werror=format
  
  LOCAL_SHARED_LIBRARIES := libstlport libsysutils libcutils libnetutils \
-                           libcrypto libhardware_legacy libmdnssd
--
+                           libcrypto libhardware_legacy libmdnssd libdl
 +ifeq ($(BOARD_HAVE_HUAWEI_WIFI),true)
++  LOCAL_CFLAGS += -DHUAWEI_WIFI
 +  LOCAL_CFLAGS += -DWIFI_MODULE_PATH=\"$(WIFI_DRIVER_MODULE_PATH)\"
 +  LOCAL_C_INCLUDES += external/wpa_supplicant_8/wpa_supplicant/src/common
 +  LOCAL_SRC_FILES += SoftapControllerATH.cpp
 +  LOCAL_SHARED_LIBRARIES := $(LOCAL_SHARED_LIBRARIES) libwpa_client
 +else
- ifeq ($(BOARD_TI_SOFTAP),true)
+ ifdef USES_TI_MAC80211
    LOCAL_SRC_FILES += SoftapControllerTI.cpp
  else
-@@ -50,6 +55,7 @@ else
    LOCAL_SRC_FILES += SoftapController.cpp
- endif
  endif
 +endif
  
  ifneq ($(BOARD_HOSTAPD_DRIVER),)
    LOCAL_CFLAGS += -DHAVE_HOSTAPD
-diff --git a/DnsProxyListener.cpp b/DnsProxyListener.cpp
-index 6c09e69..7da6b43 100644
---- a/DnsProxyListener.cpp
-+++ b/DnsProxyListener.cpp
-@@ -24,6 +24,7 @@
- #include <sys/socket.h>
- #include <sys/types.h>
- #include <string.h>
-+#include <pthread.h>
+diff --git a/CommandListener.cpp b/CommandListener.cpp
+index fdb26dd..bed8fc1 100644
+--- a/CommandListener.cpp
++++ b/CommandListener.cpp
+@@ -839,8 +839,17 @@ int CommandListener::SoftapCmd::runCommand(SocketClient *cli,
+         return 0;
+     }
  
- #define LOG_TAG "DnsProxyListener"
- #define DBG 0
-@@ -47,7 +48,8 @@ DnsProxyListener::GetAddrInfoHandler::~GetAddrInfoHandler() {
- }
++#ifdef HUAWEI_WIFI
++    if (!strcmp(argv[1], "start")) {
++        rc = sSoftapCtrl->startDriver(argv[2]);
++    } else if (!strcmp(argv[1], "stop")) {
++        rc = sSoftapCtrl->stopDriver(argv[2]);
++    } else if (!strcmp(argv[1], "startap")) {
++        rc = sSoftapCtrl->startSoftap();
++#else
+     if (!strcmp(argv[1], "startap")) {
+         rc = sSoftapCtrl->startSoftap();
++#endif
+     } else if (!strcmp(argv[1], "stopap")) {
+         rc = sSoftapCtrl->stopSoftap();
+     } else if (!strcmp(argv[1], "fwreload")) {
+diff --git a/SoftapController.h b/SoftapController.h
+index 57241b9..dc04e79 100644
+--- a/SoftapController.h
++++ b/SoftapController.h
+@@ -27,6 +27,10 @@
+ #define AP_DRIVER_START_DELAY	800000
  
- void DnsProxyListener::GetAddrInfoHandler::start() {
--    pthread_create(&mThread, NULL,
-+    pthread_t thread;
-+    pthread_create(&thread, NULL,
-                    DnsProxyListener::GetAddrInfoHandler::threadStart, this);
- }
+ class SoftapController {
++#ifdef HUAWEI_WIFI
++    char mBuf[SOFTAP_MAX_BUFFER_SIZE];
++    char mIface[IFNAMSIZ];
++#endif
+     pid_t mPid;
+     int mSock;
  
-@@ -215,7 +217,8 @@ DnsProxyListener::GetHostByAddrHandler::~GetHostByAddrHandler() {
- }
+@@ -36,6 +40,10 @@ public:
+     SoftapController();
+     virtual ~SoftapController();
  
- void DnsProxyListener::GetHostByAddrHandler::start() {
--    pthread_create(&mThread, NULL,
-+    pthread_t thread;
-+    pthread_create(&thread, NULL,
-                    DnsProxyListener::GetHostByAddrHandler::threadStart, this);
- }
- 
-diff --git a/DnsProxyListener.h b/DnsProxyListener.h
-index 1e24ebd..24c3b6a 100644
---- a/DnsProxyListener.h
-+++ b/DnsProxyListener.h
-@@ -17,7 +17,6 @@
- #ifndef _DNSPROXYLISTENER_H__
- #define _DNSPROXYLISTENER_H__
- 
--#include <pthread.h>
- #include <sysutils/FrameworkListener.h>
- 
- #include "NetdCommand.h"
-@@ -53,7 +52,6 @@ private:
- 
-     private:
-         void run();
--        pthread_t mThread;
-         SocketClient* mClient;  // ref counted
-         char* mHost;    // owned
-         char* mService; // owned
-@@ -85,7 +83,6 @@ private:
- 
-     private:
-         void run();
--        pthread_t mThread;
-         SocketClient* mClient;  // ref counted
-         void* mAddress;    // address to lookup; owned
-         int   mAddressLen; // length of address to look up
++#ifdef HUAWEI_WIFI
++    int startDriver(char *iface);
++    int stopDriver(char *iface);
++#endif
+     int startSoftap();
+     int stopSoftap();
+     bool isSoftapStarted();
 diff --git a/SoftapControllerATH.cpp b/SoftapControllerATH.cpp
 new file mode 100644
-index 0000000..f736992
+index 0000000..ad05d42
 --- /dev/null
 +++ b/SoftapControllerATH.cpp
-@@ -0,0 +1,874 @@
+@@ -0,0 +1,880 @@
 +/*
 + * Copyright (C) 2008 The Android Open Source Project
 + *
@@ -164,6 +150,10 @@ index 0000000..f736992
 +static const char HOSTAPD_CONFIG_FILE[]    = "/data/misc/wifi/hostapd.conf";
 +static const char HOSTAPD_PROP_NAME[]      = "init.svc.hostapd";
 +
++#ifdef WIFI_DRIVER_MODULE_AP_ARG
++static const char DRIVER_MODULE_AP_ARG[] = WIFI_DRIVER_MODULE_AP_ARG;
++#endif
++
 +#define WIFI_DEFAULT_BI         100         /* in TU */
 +#define WIFI_DEFAULT_DTIM       1           /* in beacon */
 +#define WIFI_DEFAULT_CHANNEL    6
@@ -179,7 +169,6 @@ index 0000000..f736992
 +/* rfkill support borrowed from bluetooth */
 +static int rfkill_id = -1;
 +static char *rfkill_state_path = NULL;
-+
 +
 +static int init_rfkill() {
 +    char path[64];
@@ -346,7 +335,6 @@ index 0000000..f736992
 +        return 0;
 +    }
 +
-+
 +    /* Clear out any stale socket files that might be left over. */
 +    wpa_ctrl_cleanup();
 +
@@ -432,7 +420,7 @@ index 0000000..f736992
 +	    sched_yield();
 +	    while ( access(ifname, F_OK|W_OK)!=0 && cnt-- > 0) {
 +		    usleep(50000);
-+	    }      
++	    }
 +	    if (access(ifname, F_OK|W_OK)==0) {
 +		    snprintf(ifname, sizeof(ifname), "%s/%s", IFACE_DIR, iface);
 +		    ALOGD("ifname %s is ready to read/write cnt=%d\n", ifname, cnt);
@@ -451,7 +439,7 @@ index 0000000..f736992
 +             ifname, strerror(errno));
 +        return -1;
 +    }
-+    
++
 +    if (wpa_ctrl_attach(ctrl_conn) != 0) {
 +        wpa_ctrl_close(ctrl_conn);
 +        ctrl_conn = NULL;
@@ -555,7 +543,7 @@ index 0000000..f736992
 +int SoftapController::startDriver(char *iface) {
 +	struct iwreq wrq;
 +	int fnum, ret;
-+	
++
 +	ALOGD("startDriver()");
 +
 +	if (mSock < 0) {
@@ -567,10 +555,13 @@ index 0000000..f736992
 +		iface = mIface;
 +	}
 +
-+
 +#ifdef WIFI_MODULE_PATH
 +    rmmod("ar6000");
++#ifdef WIFI_DRIVER_MODULE_AP_ARG
++	ret = insmod(WIFI_MODULE_PATH, DRIVER_MODULE_AP_ARG);
++#else
 +	ret = insmod(WIFI_MODULE_PATH, "");
++#endif
 +	sleep(1);
 +#else
 +	set_wifi_power(0);
@@ -605,7 +596,7 @@ index 0000000..f736992
 +	if (ret) {
 +	    ALOGE("Softap driver start failed");
 +		return -1;
-+	} 
++	}
 +
 +	/* Before starting the daemon, make sure its config file exists */
 +	ret =ensure_config_file_exists();
@@ -622,7 +613,7 @@ index 0000000..f736992
 +int SoftapController::stopDriver(char *iface) {
 +	struct iwreq wrq;
 +	int fnum, ret;
-+	
++
 +	ALOGD("stopDriver()");
 +
 +	ALOGE("softapcontroller->stopDriver");
@@ -688,7 +679,7 @@ index 0000000..f736992
 +        ALOGE("Softap startap - failed to open socket");
 +        return -1;
 +    }
-+    
++
 +    if (!mPid) {
 +        ALOGW("Softap driver not started - loading now");
 +        startDriver("eth0");
@@ -826,13 +817,12 @@ index 0000000..f736992
 +/*
 + * Arguments:
 + *      argv[2] - wlan interface
-+ *      argv[3] - softap interface
-+ *      argv[4] - SSID
-+ *	argv[5] - Security
-+ *	argv[6] - Key
-+ *	argv[7] - Channel
-+ *	argv[8] - Preamble
-+ *	argv[9] - Max SCB
++ *      argv[3] - SSID
++ *	argv[4] - Security
++ *	argv[5] - Key
++ *	argv[6] - Channel
++ *	argv[7] - Preamble
++ *	argv[8] - Max SCB
 + */
 +int SoftapController::setSoftap(int argc, char *argv[]) {
 +    unsigned char psk[SHA256_DIGEST_LENGTH];
@@ -861,22 +851,23 @@ index 0000000..f736992
 +        ALOGE("Cannot create \"%s\": %s", HOSTAPD_CONFIG_FILE, strerror(errno));
 +        return -1;
 +    }
-+    if (chown(HOSTAPD_CONFIG_FILE, AID_SYSTEM, AID_WIFI) < 0) {
++   if (chown(HOSTAPD_CONFIG_FILE, AID_SYSTEM, AID_WIFI) < 0) {
 +        ALOGE("Error changing group ownership of %s to %d: %s",
-+              HOSTAPD_CONFIG_FILE, AID_WIFI, strerror(errno));
-+         return -1;
-+     }
-+ 	if (chmod(HOSTAPD_CONFIG_FILE, 0660) < 0) {
-+        ALOGE("Error changing permission of %s to %d: %s",
-+              HOSTAPD_CONFIG_FILE, AID_WIFI, strerror(errno));
-+         return -1;
++             HOSTAPD_CONFIG_FILE, AID_WIFI, strerror(errno));
++        return -1;
 +    }
++	if (chmod(HOSTAPD_CONFIG_FILE, 0660) < 0) {
++        ALOGE("Error changing permission of %s to %d: %s",
++             HOSTAPD_CONFIG_FILE, AID_WIFI, strerror(errno));
++        return -1;
++    }
++
 +    len = snprintf(buf, sizeof(buf), "interface=eth0\n");
 +    write(fd, buf, len);
 +    len = snprintf(buf, sizeof(buf), "ctrl_interface=%s\n",IFACE_DIR);
 +    write(fd, buf, len);
-+    if (argc > 4) {
-+        len = snprintf(buf, sizeof(buf), "ssid=%s\n",argv[4]);
++    if (argc > 3) {
++        len = snprintf(buf, sizeof(buf), "ssid=%s\n",argv[3]);
 +    } else {
 +        len = snprintf(buf, sizeof(buf), "ssid=AndroidAP\n");
 +    }
@@ -890,16 +881,16 @@ index 0000000..f736992
 +    write(fd, buf, len);
 +    len = snprintf(buf, sizeof(buf), "dtim_period=%d\n",WIFI_DEFAULT_DTIM);
 +    write(fd, buf, len);
-+    if (argc > 5) {
-+        if (strncmp(argv[5], "wpa2-psk", 8) == 0) {
++    if (argc > 4) {
++        if (strncmp(argv[4], "wpa2-psk", 8) == 0) {
 +            len = snprintf(buf, sizeof(buf), "wpa=2\n");
 +            write(fd, buf, len);
 +            len = snprintf(buf, sizeof(buf), "wpa_key_mgmt=WPA-PSK\n");
 +            write(fd, buf, len);
 +            len = snprintf(buf, sizeof(buf), "wpa_pairwise=CCMP\n");
 +            write(fd, buf, len);
-+            if (argc > 6) {
-+                len = snprintf(buf, sizeof(buf), "wpa_passphrase=%s\n",argv[6]);
++            if (argc > 5) {
++                len = snprintf(buf, sizeof(buf), "wpa_passphrase=%s\n",argv[5]);
 +                write(fd, buf, len);
 +            } else {
 +                len = snprintf(buf, sizeof(buf), "wpa_passphrase=12345678\n");
@@ -907,21 +898,21 @@ index 0000000..f736992
 +            }
 +        }
 +    }
-+    if (argc > 7) {
-+        len = snprintf(buf, sizeof(buf), "channel=%s\n",argv[7]);
++    if (argc > 6) {
++        len = snprintf(buf, sizeof(buf), "channel=%s\n",argv[6]);
 +        write(fd, buf, len);
 +    } else {
 +        len = snprintf(buf, sizeof(buf), "channel=%d\n",WIFI_DEFAULT_CHANNEL);
 +        write(fd, buf, len);
 +    }
-+	len = snprintf(buf, sizeof(buf), "driver=nl80211\n",argv[8]);
++        len = snprintf(buf, sizeof(buf), "driver=nl80211\n",argv[7]);
 +        write(fd, buf, len);
 +
-+	len = snprintf(buf, sizeof(buf), "hw_mode=g\n",argv[8]);
-+      write(fd, buf, len);
++	len = snprintf(buf, sizeof(buf), "hw_mode=g\n",argv[7]);
++        write(fd, buf, len);
 +
-+    /*if (argc > 8) {
-+        len = snprintf(buf, sizeof(buf), "preamble=%s\n",argv[8]);
++    /*if (argc > 7) {
++        len = snprintf(buf, sizeof(buf), "preamble=%s\n",argv[7]);
 +        write(fd, buf, len);
 +    } else {
 +        len = snprintf(buf, sizeof(buf), "preamble=%d\n",WIFI_DEFAULT_PREAMBLE);
@@ -977,6 +968,7 @@ index 0000000..f736992
 +    // XXX: unimplemented
 +    return -1;
 +}
++
 -- 
 1.8.1.2
 

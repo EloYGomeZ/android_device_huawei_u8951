@@ -41,7 +41,7 @@ extern "C" {
 //#include <media/AudioRecord.h>
 
 
-#define COMBO_DEVICE_SUPPORTED // Headset speaker combo device not supported on this target
+//#define COMBO_DEVICE_SUPPORTED // Headset speaker combo device not supported on this target
 #define DUALMIC_KEY "dualmic_enabled"
 #define TTY_MODE_KEY "tty_mode"
 #define ECHO_SUPRESSION "ec_supported"
@@ -270,9 +270,10 @@ status_t AudioHardware::initCheck()
     return mInit ? NO_ERROR : NO_INIT;
 }
 
-AudioStreamOut* AudioHardware::openOutputStream(uint32_t devices, audio_output_flags_t flags, int *format, uint32_t *channels,
-        uint32_t *sampleRate, status_t *status)
+AudioStreamOut* AudioHardware::openOutputStream(uint32_t devices, int *format, uint32_t *channels, uint32_t *sampleRate, status_t *status)
 {
+    audio_output_flags_t flags = static_cast<audio_output_flags_t> (*status);
+
     ALOGD("openOutputStream: devices = %u format = %x channels = %u sampleRate = %u flags %x\n",
          devices, *format, *channels, *sampleRate, flags);
     { // scope for the lock
@@ -2648,7 +2649,7 @@ status_t AudioHardware::AudioStreamOutDirect::set(
     uint32_t lChannels = pChannels ? *pChannels : 0;
     uint32_t lRate = pRate ? *pRate : 0;
 
-    ALOGD("AudioStreamOutDirect::set  lFormat = %x lChannels= %u lRate = %u\n",
+    ALOGD("set lFormat = %x lChannels= %u lRate = %u\n",
         lFormat, lChannels, lRate );
 
     if ((pFormat == 0) || BAD_INDEX == hw->getMvsMode(*pFormat)) {
