@@ -11,8 +11,8 @@ $(call inherit-product, device/huawei/u8951/u8951.mk)
 TARGET_BOOTANIMATION_NAME := vertical-480x854
 
 # Device identifier. This must come after all inclusions
-PRODUCT_DEVICE := u8833
-PRODUCT_NAME := android_u8833
+PRODUCT_DEVICE := u8951
+PRODUCT_NAME := android_u8951
 PRODUCT_BRAND := Huawei
 PRODUCT_MODEL := Ascend G510
 PRODUCT_MANUFACTURER := HUAWEI
