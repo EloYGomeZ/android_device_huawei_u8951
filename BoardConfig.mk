@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
--include vendor/huawei/u8833/BoardConfigVendor.mk
+-include vendor/huawei/u8951/BoardConfigVendor.mk
 
 # Platform
 TARGET_NO_BOOTLOADER := true
