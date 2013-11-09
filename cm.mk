@@ -12,7 +12,7 @@ TARGET_BOOTANIMATION_NAME := vertical-480x854
 
 # Device identifier. This must come after all inclusions
 PRODUCT_DEVICE := u8951
-PRODUCT_NAME := android_u8951
+PRODUCT_NAME := pac_u8951
 PRODUCT_BRAND := Huawei
 PRODUCT_MODEL := Ascend G510
 PRODUCT_MANUFACTURER := HUAWEI
