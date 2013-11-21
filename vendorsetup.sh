@@ -16,7 +16,7 @@
 
 add_lunch_combo u8951-userdebug
 add_lunch_combo u8951-eng
-add_lunch_combo cm_u8951-userdebug
+add_lunch_combo mk_u8951-userdebug
 
 # Run device patches on the tree.
  sh device/huawei/u8951/patches/apply.sh

@@ -205,7 +205,7 @@
     <integer name="config_deviceHardwareKeys">7</integer> 
 
     <!-- True if the pie service should be started at system start. This is must be true
-         to support pie controls. -->
-    <bool name="config_allowPieService">false</bool>
+         to support pie controls. 
+    <bool name="config_allowPieService">false</bool>-->
 
 </resources>
