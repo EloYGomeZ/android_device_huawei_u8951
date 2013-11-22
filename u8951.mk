@@ -63,6 +63,12 @@ PRODUCT_PACKAGES += \
 # u8951 specific	
 PRODUCT_PACKAGES += \
     lights.u8951
+	
+# FM Radio
+PRODUCT_PACKAGES += \
+   FM2 \
+   libqcomfm_jni \
+   qcom.fmradio
 
 # Live Wallpapers
 PRODUCT_PACKAGES += \
