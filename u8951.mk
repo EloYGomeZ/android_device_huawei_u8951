@@ -62,10 +62,7 @@ PRODUCT_PACKAGES += \
 	
 # u8951 specific	
 PRODUCT_PACKAGES += \
-<<<<<<< HEAD:u8951.mk
     lights.u8951
-=======
-    lights.u8833
 	
 # FM Radio
 PRODUCT_PACKAGES += \
