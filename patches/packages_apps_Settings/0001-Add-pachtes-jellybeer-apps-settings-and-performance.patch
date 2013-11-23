@@ -1,0 +1,475 @@
+From 6cc26949d8a8957e8911c58c1ae411010f9fad41 Mon Sep 17 00:00:00 2001
+From: EloYGomeZ <eloygomez83@gmail.com>
+Date: Sat, 23 Nov 2013 17:23:14 +0100
+Subject: [PATCH] Add pachtes jellybeer apps settings and performance
+
+Change-Id: I1a82b644160e13b84cd914af3bb0010516410419
+---
+ AndroidManifest.xml                                | 26 +++++--
+ res/values-es/cm_strings.xml                       |  6 ++
+ res/values/cm_strings.xml                          |  7 ++
+ res/values/strings.xml                             | 63 +++++++++++++++-
+ res/xml/device_info_memory.xml                     |  5 ++
+ res/xml/performance_settings.xml                   | 45 +++++++++++
+ res/xml/settings_headers.xml                       |  8 +-
+ .../settings/cyanogenmod/PerformanceSettings.java  | 86 ++++++++++++++++++++++
+ src/com/android/settings/deviceinfo/Memory.java    | 58 ++++++++++++++-
+ 9 files changed, 290 insertions(+), 14 deletions(-)
+ create mode 100644 res/xml/performance_settings.xml
+ create mode 100644 src/com/android/settings/cyanogenmod/PerformanceSettings.java
+
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 8919385..faf0363 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -65,6 +65,7 @@
+     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+     <uses-permission android:name="android.permission.SET_TIME" />
+     <uses-permission android:name="android.permission.CHANGE_PRIVACY_GUARD_STATE" />
++	<uses-permission android:name="android.permission.REBOOT" />
+ 
+     <permission
+         android:name="android.permission.REQUEST_SUPERUSER"
+@@ -1658,14 +1659,6 @@
+ 
+         <activity android:name=".ApnEditor" />
+ 
+-        <activity android:name="Settings$AnonymousStatsActivity"
+-                android:label="@string/anonymous_statistics_title"
+-                android:configChanges="orientation|keyboardHidden|screenSize"
+-                android:clearTaskOnLaunch="true">
+-            <meta-data android:name="com.android.settings.FRAGMENT_CLASS"
+-                android:value="com.android.settings.cmstats.AnonymousStats" />
+-        </activity>
+-
+         <!-- CyanogenMod activities End -->
+ 
+         <!-- Pseudo-activity used to provide an intent-filter entry point to encryption settings -->
+@@ -1746,6 +1739,18 @@
+             </intent-filter>
+         </activity>
+ 
++        <!-- CyanogenMod activities Start -->
++
++        <activity android:name=".cyanogenmod.PerformanceSettings" />
++
++        <activity android:name="Settings$AnonymousStatsActivity"
++                android:label="@string/anonymous_statistics_title"
++                android:configChanges="orientation|keyboardHidden|screenSize"
++                android:clearTaskOnLaunch="true">
++            <meta-data android:name="com.android.settings.FRAGMENT_CLASS"
++                android:value="com.android.settings.cmstats.AnonymousStats" />
++        </activity>
++
+         <receiver android:name=".widget.SettingsAppWidgetProvider"
+                 android:label="@string/gadget_title"
+                 android:exported="true"
+@@ -1774,6 +1779,11 @@
+                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+             </intent-filter>
+         </receiver>
++        <receiver android:name=".cyanogenmod.BootReceiver" android:enabled="true">
++            <intent-filter>
++                <action android:name="android.intent.action.BOOT_COMPLETED" />
++            </intent-filter>
++        </receiver>
+ 
+         <!-- Watch for ContactsContract.Profile changes and update the user's photo.  -->
+         <receiver android:name=".users.ProfileUpdateReceiver">
+diff --git a/res/values-es/cm_strings.xml b/res/values-es/cm_strings.xml
+index 3403bf3..11aa138 100644
+--- a/res/values-es/cm_strings.xml
++++ b/res/values-es/cm_strings.xml
+@@ -713,6 +713,12 @@ podrás crear una nueva línea con el fin de insertar puntos de control adiciona
+     <string name="power_notifications_ringtone_silent">Ninguno</string>
+     <string name="screen_off_animation_title">Efecto al apagar</string>
+     <string name="screen_off_animation_summary">Mostrar un efecto animado al apagar la pantalla</string>
++    <!-- Vold Switchable Pair -->
++    <string name="storage_switch_title">Utilizar SD como primaria</string>
++    <string name="storage_switch_summary_off">Utilizando memoria interna para aplicaciones</string>
++    <string name="storage_switch_summary_on">Utilizando SD para aplicaciones</string>
++    <string name="reboot_prompt_title">Reinicio necesario</string>
++    <string name="reboot_prompt_message">Para aplicar esta configuración, es necesario reiniciar.Quieres reiniciar ahora?</string>
+     <string name="confirm_delete_apn">El APN será borrado.</string>
+     <string name="privacy_guard_switch_label">Habilitar privacidad</string>
+     <string name="privacy_guard_dlg_title">¿Habilitar privacidad?</string>
+diff --git a/res/values/cm_strings.xml b/res/values/cm_strings.xml
+index 9c71e9d..c7c1b7e 100644
+--- a/res/values/cm_strings.xml
++++ b/res/values/cm_strings.xml
+@@ -974,4 +974,11 @@ two in order to insert additional control points. \'Remove\' deletes the selecte
+     <string name="privacy_guard_manager_show_system_apps">Show built-in apps</string>
+     <string name="privacy_guard_manager_filter_permissions">Permission filter</string> 
+ 
++    <!-- Vold Switchable Pair -->
++    <string name="storage_switch_title">Use external SD as primary</string>
++    <string name="storage_switch_summary_off">Using expanded internal storage for apps and media</string>
++    <string name="storage_switch_summary_on">Using SD Card for apps and media</string>
++    <string name="reboot_prompt_title">Reboot required</string>
++    <string name="reboot_prompt_message">In order to apply the changed configuration, a reboot is required.\n\nDo you want to reboot now?</string>
++
+ </resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 14f984f..2be757f 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -4858,5 +4858,64 @@
+     <string name="fullscreen_statusbar_summary">Swiping down from the top of full screen apps shows status bar for some seconds.</string>
+     <string name="fullscreen_statusbar_timeout_title">Fullscreen Statusbar Timeout</string>
+     <string name="fullscreen_statusbar_timeout_summary">Timeout for Fullscreen Statusbar</string>
+-    
+-</resources>
+\ No newline at end of file
++
++   <!-- Performance settings  -->
++    <string name="performance_settings_title">Performance</string>
++
++    <!-- Performance Settings : Warning dialog  -->
++    <string name="performance_settings_warning_title">Proceed with Caution</string>
++    <string name="performance_settings_warning">These settings are included for experimentation and any changes made to them have the potential to cause instability, crashes, data loss or hardware failures.\n\nWe request you do not file bug reports if any of these settings have been changed from the defaults.</string>
++
++    <!-- Performance Settings : Processor Settings -->
++    <!-- Performance Settings : Processor settings title -->
++    <string name="processor_title">Processor</string>
++    <!-- Performance Settings : Processor settings summary. -->
++    <string name="processor_summary">Change CPU governor and clock speed</string>
++
++    <!-- Performance Settings : Processor settings sub items -->
++    <string name="cpu_cur_freq_title">Current CPU frequency</string>
++    <string name="cpu_governors_title">CPU governor</string>
++    <string name="cpu_governors_summary">%S</string>
++    <string name="cpu_min_freq_title">Minimum CPU frequency</string>
++    <string name="cpu_min_freq_summary">%s</string>
++    <string name="cpu_max_freq_title">Maximum CPU frequency</string>
++    <string name="cpu_max_freq_summary">%s</string>
++    <string name="cpu_set_on_boot">Set on boot</string>
++    <string name="cpu_set_on_boot_summary">Restore the processor settings on boot</string>
++
++    <!-- Performance Settings : I/O scheduler settings title -->
++    <string name="io_scheds_title">I/O scheduler</string>
++    <!-- Performance Settings : I/O scheduler settings summary. -->
++    <string name="io_scheds_summary">Change I/O scheduler</string>
++
++    <!-- Performance Settings : I/O scheduler settings sub items -->
++    <string name="io_sched_title">I/O scheduler</string>
++    <string name="io_sched_summary">%S</string>
++    <string name="io_sched_set_on_boot">Set on boot</string>
++    <string name="io_sched_set_on_boot_summary">Restore the I/O scheduler settings on boot</string>
++
++    <!-- Memory Management -->
++    <string name="memory_management_title">Memory management</string>
++    <string name="memory_management_summary">Customize the usage of memory to alter system performance</string>
++    <!-- zRam -->
++    <string name="pref_zram_title">zRam</string>
++    <string name="pref_zram_summary">Compress memory for increased virtual capacity (requires reboot)</string>
++    <!-- KSM -->
++    <string name="pref_ksm_title">Kernel samepage merging</string>
++    <string name="pref_ksm_summary">KSM reduces physical memory requirements and improves performance</string>
++    <!-- Purgeable Assets -->
++    <string name="pref_purgeable_assets_title">Allow purging of assets</string>
++    <string name="pref_purgeable_assets_summary">Purging of bitmap memory assets allows the freeing of more RAM when needed (requires reboot)</string>
++
++    <!-- Performance Settings : Dithering -->
++    <string name="pref_use_dithering_title">Surface improvement</string>
++   <string name="dithering_no_dither">Disable dithering</string>
++    <string name="dithering_color_banding">Fix color banding (default)</string>
++    <string name="dithering_blur_effect">Fix color banding and blur effect</string>
++
++    <!-- Performance Settings : 16bpp Alpha -->
++    <string name="pref_use_16bpp_alpha_title">16bit transparency</string>
++    <string name="pref_use_16bpp_alpha_summary">Better graphics performance, but lower quality and may cause visual artifacts (requires reboot)</string>
++
++    
++</resources>
+diff --git a/res/xml/device_info_memory.xml b/res/xml/device_info_memory.xml
+index e905f39..2010b2c 100644
+--- a/res/xml/device_info_memory.xml
++++ b/res/xml/device_info_memory.xml
+@@ -16,6 +16,11 @@
+ 
+ <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+         android:title="@string/storage_settings_title">
++    <CheckBoxPreference
++        android:key="key_switch_storage"
++        android:title="@string/storage_switch_title"
++        android:summaryOn="@string/storage_switch_summary_on"
++        android:summaryOff="@string/storage_switch_summary_off" />
+ 
+ <!-- Preference categories are dynamically created based on the list of available storage volumes -->
+ 
+diff --git a/res/xml/performance_settings.xml b/res/xml/performance_settings.xml
+new file mode 100644
+index 0000000..932a03c
+--- /dev/null
++++ b/res/xml/performance_settings.xml
+@@ -0,0 +1,45 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!-- Copyright (C) 2012 The CyanogenMod Project
++
++     Licensed under the Apache License, Version 2.0 (the "License");
++     you may not use this file except in compliance with the License.
++     You may obtain a copy of the License at
++
++          http://www.apache.org/licenses/LICENSE-2.0
++
++     Unless required by applicable law or agreed to in writing, software
++     distributed under the License is distributed on an "AS IS" BASIS,
++     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++     See the License for the specific language governing permissions and
++     limitations under the License.
++-->
++
++<PreferenceScreen
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:title="@string/performance_settings_title"
++    xmlns:settings="http://schemas.android.com/apk/res/com.android.settings">
++
++    <PreferenceScreen
++        android:key="processor"
++        android:fragment="com.android.settings.cyanogenmod.Processor"
++        android:title="@string/processor_title"
++        android:summary="@string/processor_summary" />
++
++    <PreferenceScreen
++        android:key="ioscheduler"
++        android:fragment="com.android.settings.cyanogenmod.IOScheduler"
++        android:title="@string/io_scheds_title"
++        android:summary="@string/io_scheds_summary" />
++
++    <PreferenceScreen
++        android:key="memory_management"
++        android:fragment="com.android.settings.cyanogenmod.MemoryManagement"
++        android:title="@string/memory_management_title"
++        android:summary="@string/memory_management_summary" />
++
++    <CheckBoxPreference
++        android:key="pref_use_16bpp_alpha"
++        android:title="@string/pref_use_16bpp_alpha_title"
++        android:summary="@string/pref_use_16bpp_alpha_summary" />
++
++</PreferenceScreen>
+diff --git a/res/xml/settings_headers.xml b/res/xml/settings_headers.xml
+index c01d362..d10db6e 100644
+--- a/res/xml/settings_headers.xml
++++ b/res/xml/settings_headers.xml
+@@ -251,7 +251,13 @@
+                 android:targetPackage="com.brewcrewfoo.performance"
+                 android:targetClass="com.brewcrewfoo.performance.activities.MainActivity" />
+         </header>
+-    
++
++    <!-- Performance CM-->
++    <header
++        android:id="@+id/performance_settings"
++        android:fragment="com.android.settings.cyanogenmod.PerformanceSettings"
++        android:icon="@drawable/ic_settings_performance"
++        android:title="@string/performance_settings_title" />    
+     
+     <!-- Superuser -->
+     <header
+diff --git a/src/com/android/settings/cyanogenmod/PerformanceSettings.java b/src/com/android/settings/cyanogenmod/PerformanceSettings.java
+new file mode 100644
+index 0000000..258b938
+--- /dev/null
++++ b/src/com/android/settings/cyanogenmod/PerformanceSettings.java
+@@ -0,0 +1,86 @@
++/*
++ * Copyright (C) 2012 The CyanogenMod Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.settings.cyanogenmod;
++
++import android.app.AlertDialog;
++import android.content.DialogInterface;
++import android.os.Bundle;
++import android.os.SystemProperties;
++import android.preference.CheckBoxPreference;
++import android.preference.Preference;
++import android.preference.PreferenceScreen;
++
++import com.android.settings.R;
++import com.android.settings.SettingsPreferenceFragment;
++
++/**
++ * Performance Settings
++ */
++public class PerformanceSettings extends SettingsPreferenceFragment {
++    private static final String TAG = "PerformanceSettings";
++
++    private static final String USE_16BPP_ALPHA_PREF = "pref_use_16bpp_alpha";
++
++    private static final String USE_16BPP_ALPHA_PROP = "persist.sys.use_16bpp_alpha";
++
++    private CheckBoxPreference mUse16bppAlphaPref;
++
++    private AlertDialog alertDialog;
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++
++        if (getPreferenceManager() != null) {
++
++            addPreferencesFromResource(R.xml.performance_settings);
++
++            PreferenceScreen prefSet = getPreferenceScreen();
++
++            mUse16bppAlphaPref = (CheckBoxPreference) prefSet.findPreference(USE_16BPP_ALPHA_PREF);
++            String use16bppAlpha = SystemProperties.get(USE_16BPP_ALPHA_PROP, "0");
++            mUse16bppAlphaPref.setChecked("1".equals(use16bppAlpha));
++
++            /* Display the warning dialog */
++            alertDialog = new AlertDialog.Builder(getActivity()).create();
++            alertDialog.setTitle(R.string.performance_settings_warning_title);
++            alertDialog.setMessage(getResources().getString(R.string.performance_settings_warning));
++            alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,
++                    getResources().getString(com.android.internal.R.string.ok),
++                    new DialogInterface.OnClickListener() {
++                        public void onClick(DialogInterface dialog, int which) {
++                            return;
++                        }
++                    });
++
++            alertDialog.show();
++        }
++    }
++
++    @Override
++    public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
++        if (preference == mUse16bppAlphaPref) {
++            SystemProperties.set(USE_16BPP_ALPHA_PROP,
++                    mUse16bppAlphaPref.isChecked() ? "1" : "0");
++        } else {
++            // If we didn't handle it, let preferences handle it.
++            return super.onPreferenceTreeClick(preferenceScreen, preference);
++        }
++
++        return true;
++    }
++}
+diff --git a/src/com/android/settings/deviceinfo/Memory.java b/src/com/android/settings/deviceinfo/Memory.java
+index 529c81c..c78f91a 100644
+--- a/src/com/android/settings/deviceinfo/Memory.java
++++ b/src/com/android/settings/deviceinfo/Memory.java
+@@ -31,15 +31,19 @@ import android.hardware.usb.UsbManager;
+ import android.os.Bundle;
+ import android.os.Environment;
+ import android.os.IBinder;
++import android.os.PowerManager;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
++import android.os.SystemProperties;
+ import android.os.storage.IMountService;
+ import android.os.storage.StorageEventListener;
+ import android.os.storage.StorageManager;
+ import android.os.storage.StorageVolume;
++import android.preference.CheckBoxPreference;
+ import android.preference.Preference;
+ import android.preference.PreferenceActivity;
+ import android.preference.PreferenceScreen;
++import android.text.TextUtils;
+ import android.util.Log;
+ import android.view.Menu;
+ import android.view.MenuInflater;
+@@ -78,6 +82,10 @@ public class Memory extends SettingsPreferenceFragment {
+     private UsbManager mUsbManager;
+ 
+     private ArrayList<StorageVolumePreferenceCategory> mCategories = Lists.newArrayList();
++    private static final String KEY_SWITCH_STORAGE = "key_switch_storage";
++    private static final String VOLD_SWITCH_PERSIST_PROP = "persist.sys.vold.switchexternal";
++    private static final String VOLD_SWITCHABLEPAIR_PROP = "persist.sys.vold.switchablepair";
++    private CheckBoxPreference mSwitchStoragePref;
+ 
+     @Override
+     public void onCreate(Bundle icicle) {
+@@ -92,6 +100,27 @@ public class Memory extends SettingsPreferenceFragment {
+ 
+         addPreferencesFromResource(R.xml.device_info_memory);
+ 
++        String voldswitch = SystemProperties.get(VOLD_SWITCH_PERSIST_PROP, "0");
++        mSwitchStoragePref = (CheckBoxPreference) findPreference(KEY_SWITCH_STORAGE);
++        mSwitchStoragePref.setChecked("1".equals(voldswitch));
++        if (!Environment.isExternalStorageEmulated()) {
++            Log.i(TAG, "Checking to see if vold switch is possible on this device.");
++            String PRIMARY_STORAGE = System.getenv("EXTERNAL_STORAGE");
++            String SECONDARY_STORAGE = System.getenv("SECONDARY_STORAGE");
++            if (!TextUtils.isEmpty(PRIMARY_STORAGE) && !TextUtils.isEmpty(SECONDARY_STORAGE)) {
++                SystemProperties.set(VOLD_SWITCHABLEPAIR_PROP, PRIMARY_STORAGE  ',' 
++                        SECONDARY_STORAGE);
++                Log.i(TAG, "Setting persist.sys.vold.swichablepair="  PRIMARY_STORAGE  ',' 
++                        SECONDARY_STORAGE);
++            } else {
++                Log.i(TAG, "Vold switch not possible on this device.");
++            }
++        }
++
++        if (SystemProperties.get(VOLD_SWITCHABLEPAIR_PROP).equals("")) {
++            removePreference(KEY_SWITCH_STORAGE);
++        }
++
+         addCategory(StorageVolumePreferenceCategory.buildForInternal(context));
+ 
+         final StorageVolume[] storageVolumes = mStorageManager.getVolumeList();
+@@ -137,8 +166,8 @@ public class Memory extends SettingsPreferenceFragment {
+     StorageEventListener mStorageListener = new StorageEventListener() {
+         @Override
+         public void onStorageStateChanged(String path, String oldState, String newState) {
+-            Log.i(TAG, "Received storage state changed notification that " + path +
+-                    " changed state from " + oldState + " to " + newState);
++            Log.i(TAG, "Received storage state changed notification that "  path 
++                    " changed state from "  oldState  " to "  newState);
+             for (StorageVolumePreferenceCategory category : mCategories) {
+                 final StorageVolume volume = category.getStorageVolume();
+                 if (volume != null && path.equals(volume.getPath())) {
+@@ -209,7 +238,13 @@ public class Memory extends SettingsPreferenceFragment {
+ 
+     @Override
+     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
+-        if (StorageVolumePreferenceCategory.KEY_CACHE.equals(preference.getKey())) {
++        if(preference == mSwitchStoragePref) {
++            Log.d(TAG,"Setting persist.sys.vold.switchexternal to "(
++                    mSwitchStoragePref.isChecked() ? "1" : "0"));
++            SystemProperties.set(VOLD_SWITCH_PERSIST_PROP,
++                    mSwitchStoragePref.isChecked() ? "1" : "0");
++            showRebootPrompt();
++        } else if (StorageVolumePreferenceCategory.KEY_CACHE.equals(preference.getKey())) {
+             ConfirmClearCacheFragment.show(this);
+             return true;
+         }
+@@ -415,4 +450,21 @@ public class Memory extends SettingsPreferenceFragment {
+             return builder.create();
+         }
+     }
++
++    private void showRebootPrompt() {
++        AlertDialog dialog = new AlertDialog.Builder(getActivity())
++                .setTitle(R.string.reboot_prompt_title)
++                .setMessage(R.string.reboot_prompt_message)
++                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener() {
++                    @Override
++                    public void onClick(DialogInterface dialog, int which) {
++                        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
++                        pm.reboot(null);
++                    }
++                })
++                .setNegativeButton(R.string.no, null)
++                .create();
++
++        dialog.show();
++    }
+ }
+-- 
+1.8.1.2
+
