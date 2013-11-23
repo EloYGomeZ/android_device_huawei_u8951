@@ -3,19 +3,6 @@ From: Mingming Yin <mingming@codeaurora.org>
 Date: Thu, 27 Dec 2012 17:43:24 -0800
 Subject: [PATCH 17/20] qcom-fm: audio: add support for fm feature
 
-Change-Id: Id48a52ceb7359deb65d4a69e664b22ed80cf997c
-
-Conflicts:
-
-	core/java/android/content/Intent.java
-	policy/src/com/android/internal/policy/impl/PhoneWindowManager.java
-
-audio: fix for FM mute issue
-
-- Add STREAM_FM in mMuteAffectedStreams
-  so that FM stream can be muted
-- Add STREAM_FM in STREAM_NAMES
-
 Change-Id: I6c604e1a20a466a97ca4246260c0b1a7ad9112d2
 CRs-fixed: 441132
 ---
