@@ -93,7 +93,7 @@ PRODUCT_COPY_FILES += \
     device/huawei/u8951/ramdisk/wifi/cfg80211.ko:root/wifi/cfg80211.ko
 	
 PRODUCT_COPY_FILES += \
-  $(call find-copy-subdir-files,*,device/huawei/u8951/prebuilt/system,system)
+    $(call find-copy-subdir-files,*,device/huawei/u8951/prebuilt/system,system)
 
 # Files needed for recovery image
 PRODUCT_COPY_FILES += \
