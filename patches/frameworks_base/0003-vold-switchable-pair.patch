@@ -1,0 +1,37 @@
+From 5e2636b1b50b89e0c9f7f412ec05c77d6e17319c Mon Sep 17 00:00:00 2001
+From: EloYGomeZ <eloygomez83@gmail.com>
+Date: Sun, 19 Jan 2014 14:39:08 +0100
+Subject: [PATCH] vold switchable pair
+
+Change-Id: Id9e86f4e92150a61ce42b044a935dc99129bffc0
+---
+ core/java/android/provider/Settings.java | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index 2efdf6f..841562c 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -3025,7 +3025,18 @@ public final class Settings {
+          * @hide
+          */
+         public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
+-
++         
++        /**
++	* Whether to collapse the notification area after dismissing the last notification
++        * @hide
++        */
++        public static final String STATUS_BAR_COLLAPSE_ON_DISMISS = "status_bar_collapse_on_dismiss";
++         /** @hide */
++        public static final int STATUS_BAR_COLLAPSE_NEVER = 0;
++        /** @hide */
++        public static final int STATUS_BAR_COLLAPSE_IF_EMPTIED = 1;
++        /** @hide */
++        public static final int STATUS_BAR_COLLAPSE_IF_NO_CLEARABLE = 2;
+         /**
+          * Whether Status bar should be hiidden when there are no
+          * notifications
+-- 
+1.8.3.2
+
