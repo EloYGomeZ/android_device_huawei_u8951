@@ -19,7 +19,7 @@ index 2efdf6f..841562c 100644
 -
 +         
 +        /**
-+	* Whether to collapse the notification area after dismissing the last notification
++	 * Whether to collapse the notification area after dismissing the last notification
 +        * @hide
 +        */
 +        public static final String STATUS_BAR_COLLAPSE_ON_DISMISS = "status_bar_collapse_on_dismiss";
